@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Extend Form View -->
+        <record id="view_mailing_mailing_form_sms_provider" model="ir.ui.view">
+            <field name="name">mailing.mailing.view.form.inherit.sms.provider</field>
+            <field name="model">mailing.mailing</field>
+            <field name="inherit_id" ref="mass_mailing_sms.mailing_mailing_view_form_sms"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='sms_subject']" position="after">
+                    <field name="sms_provider_id" 
+                           options="{'no_create': True}"
+                           invisible="mailing_type != 'sms'"
+                           required="mailing_type == 'sms'"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Extend Tree View -->
+        <record id="view_mailing_mailing_tree_sms_provider" model="ir.ui.view">
+            <field name="name">mailing.mailing.view.tree.inherit.sms.provider</field>
+            <field name="model">mailing.mailing</field>
+            <field name="inherit_id" ref="mass_mailing_sms.mailing_mailing_view_tree_sms"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="before">
+                    <field name="sms_provider_id" 
+                           optional="show"
+                           invisible="mailing_type != 'sms'"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Extend Kanban View -->
+        <record id="view_mailing_mailing_kanban_sms_provider" model="ir.ui.view">
+            <field name="name">mailing.mailing.view.kanban.inherit.sms.provider</field>
+            <field name="model">mailing.mailing</field>
+            <field name="inherit_id" ref="mass_mailing_sms.mailing_mailing_view_kanban_sms"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='sms_has_unregistered_account']" position="after">
+                    <field name="sms_provider_id"/>
+                </xpath>
+                <xpath expr="//div[hasclass('alert')]" position="before">
+                    <div class="row mt-2" invisible="mailing_type != 'sms'">
+                        <div class="col">
+                            <strong>Provider: </strong><field name="sms_provider_id"/>
+                        </div>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
