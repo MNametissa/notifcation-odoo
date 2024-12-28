@@ -15,14 +15,17 @@
                         </div>
                         <div class="oe_title">
                             <h1>
-                                <field name="name" placeholder="e.g. Orange SMS"/>
+                                <field name="name" placeholder="e.g. Orange SMS" help="Display name of the SMS provider"/>
                             </h1>
                         </div>
                         <group>
                             <group name="provider_settings" string="Provider Settings">
-                                <field name="is_default" widget="boolean_toggle"/>
-                                <field name="is_international" widget="boolean_toggle"/>
-                                <field name="sequence" groups="base.group_no_one"/>
+                                <field name="is_default" widget="boolean_toggle" 
+                                       help="Set this provider as the default for sending SMS. Only one provider can be default."/>
+                                <field name="is_international" widget="boolean_toggle"
+                                       help="Enable if this provider supports international SMS sending"/>
+                                <field name="sequence" groups="base.group_no_one"
+                                       help="Determine the display order of providers"/>
                             </group>
                         </group>
 
@@ -30,66 +33,104 @@
                             <page string="Authentication" name="authentication">
                                 <group>
                                     <group>
-                                        <field name="auth_type" widget="radio"/>
+                                        <field name="auth_type" widget="radio" 
+                                               help="Choose the authentication method required by your SMS provider"/>
                                     </group>
                                     <group>
                                         <field name="api_key" password="True" 
                                                invisible="auth_type != 'api_key'"
                                                required="auth_type == 'api_key'"
-                                               placeholder="Your API Key"/>
+                                               placeholder="Your API Key"
+                                               help="API key provided by your SMS service provider"/>
                                         <field name="username" password="True"
                                                invisible="auth_type != 'basic'"
                                                required="auth_type == 'basic'"
-                                               placeholder="Your Username"/>
+                                               placeholder="Your Username"
+                                               help="Username for basic authentication"/>
                                         <field name="password" password="True"
                                                invisible="auth_type != 'basic'"
                                                required="auth_type == 'basic'"
-                                               placeholder="Your Password"/>
+                                               placeholder="Your Password"
+                                               help="Password for basic authentication"/>
                                         <field name="oauth2_token" password="True"
                                                invisible="auth_type != 'oauth2'"
                                                required="auth_type == 'oauth2'"
-                                               placeholder="Your OAuth2 Token"/>
+                                               placeholder="Your OAuth2 Token"
+                                               help="OAuth2 token for authentication"/>
                                     </group>
                                 </group>
                             </page>
 
                             <page string="API Configuration" name="api_config">
-                                <group>
-                                    <group string="Endpoints">
-                                        <field name="base_url" placeholder="https://api.provider.com/send"/>
-                                        <field name="status_url" placeholder="https://api.provider.com/status"/>
-                                    </group>
-                                    <group string="Status">
-                                        <field name="status_waited" widget="json"/>
-                                    </group>
-                                </group>
-                                <group string="Headers" name="headers">
-                                    <field name="extra_headers" nolabel="1">
-                                        <list editable="bottom">
-                                            <field name="name" placeholder="Header Name"/>
-                                            <field name="value" placeholder="Header Value"/>
-                                        </list>
-                                    </field>
-                                </group>
-                            </page>
+                                <notebook>
+                                    <page string="Endpoints &amp; Headers" name="endpoints">
+                                        <group>
+                                            <group string="Endpoints">
+                                                <field name="base_url" placeholder="https://api.provider.com/send"
+                                                       help="The URL endpoint for sending SMS messages"/>
+                                                <field name="status_url" placeholder="https://api.provider.com/status"
+                                                       help="The URL endpoint for checking SMS delivery status"/>
+                                            </group>
+                                        </group>
+                                        <group string="HTTP Headers">
+                                            <field name="extra_headers" nolabel="1">
+                                                <list editable="bottom">
+                                                    <field name="name" placeholder="Header Name (e.g., Content-Type)"
+                                                           help="Name of the HTTP header"/>
+                                                    <field name="value" placeholder="Header Value (e.g., application/json)"
+                                                           help="Value of the HTTP header"/>
+                                                    <field name="provider_id" invisible="1"/>
+                                                </list>
+                                            </field>
+                                        </group>
+                                    </page>
 
-                            <page string="Message Configuration" name="message_config">
-                                <group>
-                                    <group string="Request Template">
-                                        <field name="payload_template" widget="json"/>
-                                    </group>
-                                    <group string="Status Template">
-                                        <field name="status_body_template" widget="json"/>
-                                    </group>
-                                </group>
-                                <group string="Extra Fields" name="extra_fields">
-                                    <field name="extra_fields" nolabel="1">
-                                        <list editable="bottom">
-                                            <field name="name" placeholder="Field Name"/>
-                                            <field name="value" placeholder="Field Value"/>
-                                        </list>
-                                    </field>
-                                </group>
+                                    <page string="Request Configuration" name="request_config">
+                                        <group>
+                                            <group string="Send Request">
+                                                <field name="payload_template" widget="json"
+                                                       help="JSON template for the SMS sending request. Use variables: ${message}, ${recipients}, ${username}, ${password}, ${api_key}"/>
+                                                <field name="extra_fields" nolabel="1">
+                                                    <list editable="bottom">
+                                                        <field name="name" placeholder="Field Name"
+                                                               help="Name of the additional field required by the provider"/>
+                                                        <field name="value" placeholder="Field Value"
+                                                               help="Value of the additional field"/>
+                                                        <field name="provider_id" invisible="1"/>
+                                                    </list>
+                                                </field>
+                                            </group>
+                                            <group string="Status Check Request">
+                                                <field name="status_body_template" widget="json"
+                                                       help="JSON template for the status check request. Use variables: ${message_id}, ${username}, ${password}, ${api_key}"/>
+                                                <field name="extra_params_status" nolabel="1">
+                                                    <list editable="bottom">
+                                                        <field name="name" placeholder="Parameter Name"
+                                                               help="Name of the parameter for status check requests"/>
+                                                        <field name="value" placeholder="Parameter Value"
+                                                               help="Value of the parameter"/>
+                                                        <field name="provider_id" invisible="1"/>
+                                                    </list>
+                                                </field>
+                                            </group>
+                                        </group>
+                                    </page>
+
+                                    <page string="Response Fields" name="response_fields">
+                                        <group>
+                                            <group string="Field Mapping">
+                                                <field name="message_id_field" 
+                                                       placeholder="e.g., data.message_id or messages[0].id"
+                                                       help="JSON path to extract message ID from provider response (e.g., data.message_id or messages[0].id)"/>
+                                                <field name="status_field"
+                                                       placeholder="e.g., status or data.delivery_status"
+                                                       help="JSON path to extract delivery status from provider response (e.g., status or data.delivery_status)"/>
+                                                <field name="status_waited" widget="json"
+                                                       help="JSON object defining expected status values for unsuccessful delivery"/>
+                                            </group>
+                                        </group>
+                                    </page>
+                                </notebook>
                             </page>
                         </notebook>
                     </sheet>
@@ -98,8 +139,8 @@
         </record>
 
         <!-- Provider List View -->
-        <record id="view_sms_provider_tree" model="ir.ui.view">
-            <field name="name">karbura.notification.provider.tree</field>
+        <record id="view_sms_provider_list" model="ir.ui.view">
+            <field name="name">karbura.notification.provider.list</field>
             <field name="model">karbura.notification.provider</field>
             <field name="arch" type="xml">
                 <list string="SMS Providers">

@@ -21,7 +21,11 @@ class SMSProvider(models.Model):
     # URL Configuration
     base_url = fields.Char(string="Send URL", required=True)
     status_url = fields.Char(string="Status URL")
-    status_waited = fields.Char(string="Awaited Status", default='{"status":"success"}', required=True)
+    status_waited = fields.Text(
+        string="Waited Statuses",
+        help="List of status values that indicate the message is still pending (JSON array)",
+        default='["pending", "queued", "sent"]'
+    )
 
     url_type = fields.Selection([
         ('simple_url', 'Simple'),
@@ -44,13 +48,25 @@ class SMSProvider(models.Model):
     # Templates
     payload_template = fields.Text(
         string="Payload Template (JSON)", 
-        help="Payload template in JSON format",
+        help="Payload template in JSON format. Available variables: {recipient}, {message}, {username}, {password}",
         default='{"to": "{recipient}", "body": "{message}"}'
     )
     status_body_template = fields.Text(
         string="Status Body Template (JSON)", 
-        help="Payload template in JSON format",
-        default='{"to": "{recipient}", "body": "{message}"}'
+        help="Status check payload template in JSON format. Available variables: {messageid}, {username}, {password}",
+        default='{"messageid": "{messageid}", "username": "{username}", "password": "{password}"}'
+    )
+    message_id_field = fields.Char(
+        string="Message ID Field",
+        help="Field name or path to message ID in provider response (e.g., 'id' or 'data.message_id')",
+        required=True,
+        default="message_id"
+    )
+    status_field = fields.Char(
+        string="Status Field",
+        help="Field name or path to status in provider response (e.g., 'status' or 'data.delivery_status')",
+        required=True,
+        default="status"
     )
 
     # Provider Selection
