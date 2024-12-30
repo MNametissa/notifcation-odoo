@@ -60,7 +60,7 @@ class SMSProvider(models.Model):
         string="Message ID Field",
         help="Field name or path to message ID in provider response (e.g., 'id' or 'data.message_id')",
         required=True,
-        default="message_id"
+        default="messageid"
     )
     status_field = fields.Char(
         string="Status Field",
