@@ -7,6 +7,44 @@
             <field name="model">mailing.mailing</field>
             <field name="inherit_id" ref="mass_mailing_sms.mailing_mailing_view_form_sms"/>
             <field name="arch" type="xml">
+                <xpath expr="//div[hasclass('alert-warning')]" position="after">
+                    <div class="alert alert-danger" role="alert" 
+                         invisible="mailing_type != 'sms' or state != 'failed' or canceled != total">
+                        <strong>SMS Campaign Canceled</strong>
+                        <p>All SMS messages in this campaign were canceled.</p>
+                    </div>
+                    <div class="alert alert-danger" role="alert" 
+                         invisible="mailing_type != 'sms' or state != 'failed' or canceled == total">
+                        <strong>All SMS messages have failed to send.</strong>
+                        <p>Please check the error messages in the Statistics tab.</p>
+                    </div>
+                    <div class="alert alert-warning" role="alert" 
+                         invisible="mailing_type != 'sms' or state != 'partially_sent' or canceled == 0">
+                        <strong>Some SMS messages were sent successfully, others were canceled.</strong>
+                        <p>Check the Statistics tab for details.</p>
+                    </div>
+                    <div class="alert alert-warning" role="alert" 
+                         invisible="mailing_type != 'sms' or state != 'partially_sent' or sent == 0">
+                        <strong>Some SMS messages were sent successfully, but others failed.</strong>
+                        <p>Check the Statistics tab for details.</p>
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="mailing_type != 'sms' or state != 'sending'">
+                        <strong>Sending SMS Messages...</strong>
+                        <p>Your SMS campaign is being processed. Please wait while messages are being sent.</p>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="mailing_type != 'sms' or total != 0">
+                        <strong>No Recipients Selected</strong>
+                        <p>Please add recipients to your SMS campaign before sending. You can:
+                            <ul>
+                                <li>Add them to a mailing list</li>
+                                <li>Use filters to select specific records</li>
+                                <li>Import contacts with phone numbers</li>
+                            </ul>
+                        </p>
+                    </div>
+                </xpath>
                 <xpath expr="//field[@name='sms_subject']" position="after">
                     <field name="sms_provider_id" 
                            options="{'no_create': True}"
@@ -22,6 +60,12 @@
             <field name="model">mailing.mailing</field>
             <field name="inherit_id" ref="mass_mailing_sms.mailing_mailing_view_tree_sms"/>
             <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="attributes">
+                    <attribute name="decoration-danger">state == 'failed'</attribute>
+                    <attribute name="decoration-warning">state == 'partially_sent'</attribute>
+                    <attribute name="decoration-success">state == 'done'</attribute>
+                    <attribute name="decoration-info">state in ('in_queue', 'sending')</attribute>
+                </xpath>
                 <xpath expr="//field[@name='state']" position="before">
                     <field name="sms_provider_id" 
                            optional="show"

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 import logging
 
@@ -10,6 +10,15 @@ class Mailing(models.Model):
     sms_provider_id = fields.Many2one('karbura.notification.provider', string='SMS Provider',
         domain=[('active', '=', True)],
         help='Provider to use for sending SMS messages')
+
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('in_queue', 'In Queue'),
+        ('sending', 'Sending'),
+        ('partially_sent', 'Partially Sent'),  
+        ('failed', 'Failed'),  
+        ('done', 'Sent')
+    ], string='Status', default='draft', required=True, copy=False, tracking=True)
 
     def _get_default_sms_provider(self):
         """Get the default SMS provider."""
@@ -28,12 +37,32 @@ class Mailing(models.Model):
             provider = self.sms_provider_id or self._get_default_sms_provider()
             if not provider:
                 _logger.error("No SMS provider configured")
-                raise UserError('No SMS provider configured')
+                raise UserError(_('No SMS provider configured'))
             _logger.debug("Using SMS provider: %s", provider.name)
         return composer_values
 
+    def action_put_in_queue(self):
+        for mailing in self:
+            if mailing.mailing_type == 'sms':
+                # Check for recipients
+                recipients = mailing._get_remaining_recipients()
+                if not recipients:
+                    raise UserError(_('Please select recipients for your SMS campaign. You can add recipients by:\n'
+                                    '- Adding them to a mailing list\n'
+                                    '- Using filters to select specific records\n'
+                                    '- Importing contacts with phone numbers'))
+                
+                # Check for SMS provider
+                if not mailing.sms_provider_id:
+                    raise UserError(_('Please select an SMS provider before sending the campaign.'))
+                
+        return super().action_put_in_queue()
+
     def _send_sms(self, records, body):
         """Override to use custom SMS provider."""
+        if not records:
+            raise UserError(_('No valid recipients found for this SMS campaign.'))
+            
         _logger.info("=== Starting _send_sms in mailing.mailing ===")
         _logger.info("Records count: %s, Body preview: %s", len(records), body[:100] if body else None)
         
@@ -45,7 +74,7 @@ class Mailing(models.Model):
         provider = self.sms_provider_id or self._get_default_sms_provider()
         if not provider:
             _logger.error("No SMS provider configured")
-            raise UserError('No SMS provider configured')
+            raise UserError(_('No SMS provider configured'))
         
         _logger.info("Using provider: %s", provider.name)
         
@@ -88,3 +117,32 @@ class Mailing(models.Model):
             partner = record.partner_id
             return partner.mobile or partner.phone
         return False
+
+    @api.depends('mailing_trace_ids.trace_status')
+    def _compute_statistics(self):
+        super()._compute_statistics()
+        for mailing in self:
+            if mailing.mailing_type != 'sms' or mailing.state not in ['done', 'failed', 'partially_sent', 'sending']:
+                continue
+                
+            total_sent = mailing.sent + mailing.delivered
+            total_failed = mailing.failed + mailing.bounced
+            total_canceled = mailing.canceled
+            total_pending = mailing.pending
+            total_expected = total_sent + total_failed + total_pending + total_canceled
+
+            # Update state based on statistics
+            if total_expected > 0:
+                if total_canceled == total_expected:
+                    mailing.state = 'failed'  # All messages were canceled
+                elif total_failed == total_expected:
+                    mailing.state = 'failed'  # All messages failed
+                elif total_sent > 0 and total_sent < total_expected:
+                    mailing.state = 'partially_sent'
+                elif total_sent == total_expected:
+                    mailing.state = 'done'
+                elif total_pending > 0:
+                    mailing.state = 'sending'  # There are messages still pending to be sent
+            elif mailing.state == 'sending':
+                # Keep 'sending' state when no messages processed yet
+                pass
